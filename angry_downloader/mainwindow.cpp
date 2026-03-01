@@ -5,6 +5,9 @@
 #include <QStringList>
 #include <QRegularExpression>
 #include <QProcessEnvironment>
+#include <QSettings>
+#include <QDir>
+#include <QFile>
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
@@ -12,8 +15,29 @@ MainWindow::MainWindow(QWidget *parent)
 {
     ui->setupUi(this);
 
+    // --- LOAD SAVED SETTINGS ON STARTUP ---
+    QSettings settings("MyCoolApps", "YtDlpGUI");
+    m_saveFolder = settings.value("lastFolder", "").toString();
+
+    if (!m_saveFolder.isEmpty()) {
+        ui->lblPath->setText(m_saveFolder);
+    } else {
+        ui->lblPath->setText("No folder selected");
+    }
 
     ytProcess = new QProcess(this);
+
+    // --- SET UP THUMBNAIL PROCESS ---
+    thumbProcess = new QProcess(this);
+
+    // We will save the temp image as "yt_temp_thumb.jpg" in your OS's temp folder
+    m_tempThumbPath = QDir::tempPath() + "/yt_temp_thumb.jpg";
+
+    connect(thumbProcess,
+            QOverload<int,QProcess::ExitStatus>::of(&QProcess::finished),
+            this,
+            &MainWindow::on_thumbProcessFinished);
+    // --------------------------------
 
     connect(ytProcess,
             QOverload<int,QProcess::ExitStatus>::of(&QProcess::finished),
@@ -25,7 +49,16 @@ MainWindow::MainWindow(QWidget *parent)
             this,
             &MainWindow::on_btnConvertClicked);
 
-    connect(ytProcess, &QProcess::readyReadStandardOutput, this, &MainWindow::on_processReadyRead);
+    connect(ytProcess,
+            &QProcess::readyReadStandardOutput,
+            this,
+            &MainWindow::on_processReadyRead);
+
+    connect(ui->btnFileDest,
+            &QPushButton::clicked,
+            this,
+            &MainWindow::on_btnFileDestClicked
+            );
 
 }
 
@@ -34,22 +67,39 @@ MainWindow::~MainWindow()
     delete ui;
 }
 
+void MainWindow::on_btnFileDestClicked()
+{
+    // Step 2: Open a dialog to choose the save folder
+    QString saveFolder = QFileDialog::getExistingDirectory(this, "Select Save Folder");
+
+    if (!saveFolder.isEmpty()) {
+        m_saveFolder = saveFolder;
+        ui->lblPath->setText(saveFolder);
+
+        // --- SAVE TO SETTINGS ---
+        QSettings settings("MyCoolApps", "YtDlpGUI");
+        settings.setValue("lastFolder", m_saveFolder);
+    }
+
+}
+
 void MainWindow::on_btnConvertClicked()
 {
     // Step 1: Get text from the text box
     QString url = ui->txtYtLink->toPlainText().trimmed();
+
 
     if (url.isEmpty()) {
         QMessageBox::warning(this, "Error", "Please enter a URL first!");
         return;
     }
 
-    // Step 2: Open a dialog to choose the save folder
-    QString saveFolder = QFileDialog::getExistingDirectory(this, "Select Save Folder");
-
-    if (saveFolder.isEmpty()) {
-        return; // User canceled the dialog
+    // --- ADD THIS SAFETY CHECK ---
+    if (m_saveFolder.isEmpty()) {
+        QMessageBox::warning(this, "Error", "Please select a save folder first!");
+        return;
     }
+
 
     // Step 3: Get the format from the combo box
     // Make sure 'boxFormats' matches the objectName of your QComboBox
@@ -63,7 +113,7 @@ void MainWindow::on_btnConvertClicked()
     QStringList arguments;
 
     // Output template
-    QString outputPath = saveFolder + "/%(title)s.%(ext)s";
+    QString outputPath = m_saveFolder + "/%(title)s.%(ext)s";
     arguments << "-o" << outputPath;
 
     // Format selection logic
@@ -92,11 +142,40 @@ void MainWindow::on_btnConvertClicked()
     ytProcess->setProcessEnvironment(env);
     // -------------------------
 
-    // Start the process!
-    ytProcess->start("yt-dlp", arguments);
+    // --- FETCH THE THUMBNAIL ---
+    // Clear the old thumbnail and show a loading message
+    ui->lblThumbnail->clear();
+    ui->lblThumbnail->setText("Loading thumbnail...");
+    ui->lblTitle->clear();
+    ui->lblTitle->setText("Loading title");
+
+    QStringList thumbArgs;
+
+    // 1. Tell yt-dlp to get the thumbnail, make it a JPG, and skip the video
+    thumbArgs << "--write-thumbnail" << "--convert-thumbnails" << "jpg" << "--skip-download";
+
+    // 2. Make it quiet, print the title, force overwrite, and ADD --no-simulate
+    // so it actually saves the picture while printing the text!
+    thumbArgs << "-q" << "--no-warnings" << "--print" << "title" << "--force-overwrites" << "--no-simulate";
+
+    // 3. Output path
+    thumbArgs << "-o" << QDir::tempPath() + "/yt_temp_thumb";
+
+    thumbArgs << "--ffmpeg-location" << "/usr/bin/ffmpeg";
+    thumbArgs << url;
+
+    // Use the exact same clean environment we created earlier
+    thumbProcess->setProcessEnvironment(env);
+
+    QFile::remove(m_tempThumbPath);
+
+    // Start fetching the thumbnail!
+    thumbProcess->start("yt-dlp", thumbArgs);
+    // ---------------------------
 
     // Start the process!
     ytProcess->start("yt-dlp", arguments);
+
 }
 
 void MainWindow::on_processFinished(int exitCode, QProcess::ExitStatus exitStatus)
@@ -142,5 +221,38 @@ void MainWindow::on_processReadyRead()
 
         // Update the progress bar!
         ui->progressBar->setValue(static_cast<int>(progressPercentage));
+    }
+}
+
+void MainWindow::on_thumbProcessFinished(int exitCode, QProcess::ExitStatus exitStatus)
+{
+    if (exitStatus == QProcess::NormalExit && exitCode == 0) {
+
+        // --- GRAB THE TITLE ---
+        // Read the standard output, which now perfectly contains our title!
+        QString videoTitle = QString(thumbProcess->readAllStandardOutput()).trimmed();
+
+        // If it found a title, put it on the label
+        if (!videoTitle.isEmpty()) {
+            ui->lblTitle->setText(videoTitle);
+        } else {
+            ui->lblTitle->setText("Unknown Title");
+        }
+        // ----------------------
+
+        // Load the image from the temp folder
+        QPixmap thumbnail(m_tempThumbPath);
+
+        if (!thumbnail.isNull()) {
+            // Scale the image to perfectly fit the label you drew in Qt Designer,
+            // keeping the correct aspect ratio and smoothing the pixels!
+            ui->lblThumbnail->setPixmap(thumbnail.scaled(ui->lblThumbnail->size(),
+                                                         Qt::KeepAspectRatio,
+                                                         Qt::SmoothTransformation));
+        } else {
+            ui->lblThumbnail->setText("Image downloaded but invalid.");
+        }
+    } else {
+        ui->lblThumbnail->setText("Failed to load thumbnail.");
     }
 }
