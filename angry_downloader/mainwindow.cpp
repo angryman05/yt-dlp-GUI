@@ -8,12 +8,27 @@
 #include <QSettings>
 #include <QDir>
 #include <QFile>
+#include <QStandardPaths>
+#include <QVBoxLayout>
+#include <QHBoxLayout>
+#include <QLabel>
+#include <QDateTime>
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
     , ui(new Ui::MainWindow)
 {
     ui->setupUi(this);
+
+    // --- SETUP PERMANENT CACHE FOLDER ---
+    // This finds the standard Linux/Windows user data folder and creates a folder just for our app
+    m_appDataFolder = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation) + "/YtDlpGUI/Thumbnails";
+
+    QDir dir;
+    if (!dir.exists(m_appDataFolder)) {
+        dir.mkpath(m_appDataFolder); // Create the folder if it doesn't exist!
+    }
+    // ------------------------------------
 
     // --- LOAD SAVED SETTINGS ON STARTUP ---
     QSettings settings("MyCoolApps", "YtDlpGUI");
@@ -24,6 +39,10 @@ MainWindow::MainWindow(QWidget *parent)
     } else {
         ui->lblPath->setText("No folder selected");
     }
+
+    // --- LOAD HISTORY ON STARTUP ---
+    loadHistory();
+    updateHistoryUI();
 
     ytProcess = new QProcess(this);
 
@@ -59,6 +78,11 @@ MainWindow::MainWindow(QWidget *parent)
             this,
             &MainWindow::on_btnFileDestClicked
             );
+
+    connect(ui->btnClearHistory,
+            &QPushButton::clicked,
+            this,
+            &MainWindow::on_btnClearHistoryClicked);
 
 }
 
@@ -112,12 +136,23 @@ void MainWindow::on_btnConvertClicked()
     // Step 4: Set up the arguments for yt-dlp
     QStringList arguments;
 
-    // Output template
-    QString outputPath = m_saveFolder + "/%(title)s.%(ext)s";
+    // --- NEW PLAYLIST LOGIC ---
+    QString outputPath;
+
+    if (ui->chkPlaylist->isChecked()) {
+        // Yes Playlist: Create a folder with the playlist name, and number the files!
+        arguments << "--yes-playlist";
+        outputPath = m_saveFolder + "/%(playlist_title)s/%(playlist_index)s - %(title)s.%(ext)s";
+    } else {
+        // No Playlist: Just download the single video, even if it's part of a playlist link
+        arguments << "--no-playlist";
+        outputPath = m_saveFolder + "/%(title)s.%(ext)s";
+    }
+
     arguments << "-o" << outputPath;
 
     // Format selection logic
-    if (format == "mp3" || format == "wav" || format == "m4a" || format == "flac") {
+    if (format == "mp3" || format == "wav" || format == "m4a" || format == "flac" || format == "ogg") {
         // If it's an audio format, we must extract the audio
         arguments << "-x" << "--audio-format" << format;
     } else {
@@ -186,6 +221,19 @@ void MainWindow::on_processFinished(int exitCode, QProcess::ExitStatus exitStatu
 
     if (exitStatus == QProcess::NormalExit && exitCode == 0) {
         QMessageBox::information(this, "Success", "Video downloaded successfully!");
+
+        // --- ADD THESE TWO LINES ---
+        // Grab the title we fetched earlier from the label
+        QString videoTitle = ui->lblTitle->text();
+
+        if (ui->chkPlaylist->isChecked()) {
+            videoTitle = "🗂️ [Playlist] " + videoTitle;
+        }
+
+        // Send it to our new save function!
+        saveToHistory(videoTitle, m_saveFolder);
+        // ---------------------------
+
         ui->txtYtLink->clear();
     } else {
         // Grab the actual error message from yt-dlp
@@ -255,4 +303,152 @@ void MainWindow::on_thumbProcessFinished(int exitCode, QProcess::ExitStatus exit
     } else {
         ui->lblThumbnail->setText("Failed to load thumbnail.");
     }
+}
+
+void MainWindow::saveToHistory(QString title, QString savedPath)
+{
+    // 1. Create a permanent copy of the thumbnail
+    // We name the image using the current exact millisecond so it's always unique!
+    QString uniqueName = QString::number(QDateTime::currentMSecsSinceEpoch()) + ".jpg";
+    QString permanentThumbPath = m_appDataFolder + "/" + uniqueName;
+
+    // Copy the temporary image to the permanent cache folder
+    QFile::copy(m_tempThumbPath, permanentThumbPath);
+
+    // 2. Add the new items to the FRONT of our lists (Index 0)
+    m_historyTitles.prepend(title);
+    m_historyPaths.prepend(savedPath);
+    m_historyThumbs.prepend(permanentThumbPath);
+
+    // 3. Enforce the 5-item limit (FIFO Queue)
+    if (m_historyTitles.size() > 5) {
+        // Delete the oldest physical image file from your hard drive to save space
+        QFile::remove(m_historyThumbs.last());
+
+        // Remove the oldest entries from the back of the lists
+        m_historyTitles.removeLast();
+        m_historyPaths.removeLast();
+        m_historyThumbs.removeLast();
+    }
+
+    // 4. Save the lists to the operating system using QSettings!
+    QSettings settings("MyCoolApps", "YtDlpGUI");
+    settings.setValue("historyTitles", m_historyTitles);
+    settings.setValue("historyPaths", m_historyPaths);
+    settings.setValue("historyThumbs", m_historyThumbs);
+
+    // 5. Tell the UI to redraw the History tab
+    updateHistoryUI();
+}
+
+void MainWindow::loadHistory()
+{
+    QSettings settings("MyCoolApps", "YtDlpGUI");
+
+    // Grab the lists from the OS. If they don't exist yet, it just returns an empty list!
+    m_historyTitles = settings.value("historyTitles").toStringList();
+    m_historyPaths = settings.value("historyPaths").toStringList();
+    m_historyThumbs = settings.value("historyThumbs").toStringList();
+}
+
+void MainWindow::updateHistoryUI()
+{
+    // 1. Get the vertical layout you created inside the scroll area
+    QVBoxLayout* mainLayout = qobject_cast<QVBoxLayout*>(ui->scrollAreaWidgetContents->layout());
+
+    // Safety fallback: if you forgot to add the layout in Qt Designer, this creates it automatically!
+    if (!mainLayout) {
+        mainLayout = new QVBoxLayout(ui->scrollAreaWidgetContents);
+        ui->scrollAreaWidgetContents->setLayout(mainLayout);
+    }
+
+    // 2. Clear out the old UI items so we don't duplicate the list every time we download a new video!
+    QLayoutItem* child;
+    while ((child = mainLayout->takeAt(0)) != nullptr) {
+        if (child->widget()) {
+            delete child->widget(); // Delete the actual row
+        }
+        delete child; // Delete the layout pointer
+    }
+
+    for (int i = 0; i < m_historyTitles.size(); ++i) {
+
+        QWidget* rowWidget = new QWidget(ui->scrollAreaWidgetContents);
+
+        // --- NEW FIX 1: Lock the row height so it doesn't stretch! ---
+        rowWidget->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
+        rowWidget->setMinimumHeight(110);
+        // -------------------------------------------------------------
+
+        QHBoxLayout* rowLayout = new QHBoxLayout(rowWidget);
+        rowLayout->setContentsMargins(10, 10, 10, 10); // Add a little padding around the edges
+
+        // --- DRAW THUMBNAIL ---
+        QLabel* thumbLabel = new QLabel(rowWidget);
+        thumbLabel->setFixedSize(160, 90);
+        QPixmap pix(m_historyThumbs[i]);
+        if (!pix.isNull()) {
+            thumbLabel->setPixmap(pix.scaled(160, 90, Qt::KeepAspectRatio, Qt::SmoothTransformation));
+        } else {
+            thumbLabel->setText("Image Missing");
+            thumbLabel->setAlignment(Qt::AlignCenter);
+        }
+
+        // --- DRAW TEXT ---
+        QVBoxLayout* textLayout = new QVBoxLayout();
+
+        QLabel* titleLabel = new QLabel("<b>" + m_historyTitles[i] + "</b>", rowWidget);
+        QLabel* pathLabel = new QLabel("<i>Saved to: " + m_historyPaths[i] + "</i>", rowWidget);
+
+        titleLabel->setWordWrap(true);
+
+        // --- NEW FIX 2: Force the text to align perfectly to the left! ---
+        titleLabel->setAlignment(Qt::AlignLeft | Qt::AlignTop);
+        pathLabel->setAlignment(Qt::AlignLeft | Qt::AlignTop);
+        // -----------------------------------------------------------------
+
+        textLayout->addWidget(titleLabel);
+        textLayout->addWidget(pathLabel);
+        textLayout->addStretch();
+
+        // --- NEW FIX 3: Snap it all together and anchor the thumbnail to the top! ---
+        rowLayout->addWidget(thumbLabel, 0, Qt::AlignTop);
+        rowLayout->addLayout(textLayout);
+        // ----------------------------------------------------------------------------
+
+        // Add the finished row to the master layout
+        mainLayout->addWidget(rowWidget);
+    }
+    // Add a spacer at the very bottom so all the rows are pushed nicely to the top of the window
+    mainLayout->addStretch();
+}
+
+void MainWindow::on_btnClearHistoryClicked()
+{
+    // 1. Ask the user if they are sure!
+    QMessageBox::StandardButton reply;
+    reply = QMessageBox::question(this, "Clear History", "Are you sure you want to delete your download history?",
+                                  QMessageBox::Yes | QMessageBox::No);
+    if (reply == QMessageBox::No) {
+        return; // Cancel the wipe
+    }
+
+    // 2. Delete the physical thumbnail images from your hard drive
+    for (int i = 0; i < m_historyThumbs.size(); ++i) {
+        QFile::remove(m_historyThumbs[i]);
+    }
+
+    // 3. Empty the C++ lists
+    m_historyTitles.clear();
+    m_historyPaths.clear();
+    m_historyThumbs.clear();
+
+    // 4. Wipe the saved memory in the OS
+    QSettings settings("MyCoolApps", "YtDlpGUI");
+    settings.remove("historyTitles");
+    settings.remove("historyPaths");
+    settings.remove("historyThumbs");
+
+    // 5. Redraw the UI (it will draw an empty list!)
+    updateHistoryUI();
 }

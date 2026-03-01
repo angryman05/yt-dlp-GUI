@@ -6,19 +6,19 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1369</width>
-    <height>847</height>
+    <width>1283</width>
+    <height>830</height>
    </rect>
   </property>
   <property name="windowTitle">
    <string>angry downloader</string>
   </property>
   <widget class="QWidget" name="centralwidget">
-   <layout class="QHBoxLayout" name="horizontalLayout">
+   <layout class="QVBoxLayout" name="verticalLayout_3">
     <item>
      <widget class="QTabWidget" name="tabWidget">
       <property name="currentIndex">
-       <number>0</number>
+       <number>1</number>
       </property>
       <widget class="QWidget" name="tab">
        <attribute name="title">
@@ -59,6 +59,19 @@
            <widget class="QPushButton" name="btnConvert">
             <property name="text">
              <string>Convert</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QCheckBox" name="chkPlaylist">
+            <property name="font">
+             <font>
+              <pointsize>15</pointsize>
+              <stylestrategy>NoAntialias</stylestrategy>
+             </font>
+            </property>
+            <property name="text">
+             <string>Download playlist</string>
             </property>
            </widget>
           </item>
@@ -126,6 +139,21 @@
             <item>
              <property name="text">
               <string>wav</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>m4a</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>flac</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>ogg</string>
              </property>
             </item>
            </widget>
@@ -237,7 +265,7 @@
        <attribute name="title">
         <string>History</string>
        </attribute>
-       <layout class="QHBoxLayout" name="horizontalLayout_3">
+       <layout class="QVBoxLayout" name="verticalLayout_4">
         <item>
          <widget class="QScrollArea" name="scrollArea">
           <property name="widgetResizable">
@@ -248,11 +276,23 @@
             <rect>
              <x>0</x>
              <y>0</y>
-             <width>1327</width>
-             <height>731</height>
+             <width>1241</width>
+             <height>678</height>
             </rect>
            </property>
           </widget>
+         </widget>
+        </item>
+        <item>
+         <widget class="QPushButton" name="btnClearHistory">
+          <property name="font">
+           <font>
+            <pointsize>12</pointsize>
+           </font>
+          </property>
+          <property name="text">
+           <string>Clear history</string>
+          </property>
          </widget>
         </item>
        </layout>
@@ -266,7 +306,7 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>1369</width>
+     <width>1283</width>
      <height>23</height>
     </rect>
    </property>
