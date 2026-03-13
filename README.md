@@ -1,77 +1,82 @@
 # Angry Downloader 🎥
 
-A fast, cross-platform graphical user interface (GUI) for `yt-dlp` and `FFmpeg`, built with C++ and Qt 6. Easily download high-quality videos and audio without touching the command line.
+[![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0) [![Framework: Qt 6](https://img.shields.io/badge/Framework-Qt_6-41CD52.svg)](https://www.qt.io/) [![Language: C++](https://img.shields.io/badge/Language-C++-00599C.svg)](https://isocpp.org/)
 
-[🇷🇴 Citește în Limba Română](#-limba-română-romanian)
-
-## ✨ Features
-* **Cross-Platform:** Works perfectly on Windows and Linux.
-* **Powered by yt-dlp:** Supports downloading from YouTube and hundreds of other supported sites.
-* **Automated Merging:** Uses FFmpeg under the hood to automatically stitch together high-quality video and audio streams.
-* **Portable:** No installation required. Just download the AppImage (Linux) or extract the ZIP (Windows) and run.
-
-## 🚀 Download & Install
-Head over to the **[Releases](../../releases/latest)** page to download the latest version for your operating system:
-* **Windows:** Download the `.zip` file, extract it, and double-click `angry_downloader.exe`.
-* **Linux (Fedora/Ubuntu/etc):** Download the `.AppImage` file, make it executable (`chmod +x`), and double-click to run.
-
-## 🛠️ Building from Source
-
-### Prerequisites
-* Qt 6 (Tested with 6.10.2)
-* CMake
-* C++ Compiler (MinGW for Windows, GCC for Linux)
-
-### Building on Windows
-To keep this repository lightweight, the large Windows binaries for yt-dlp and FFmpeg are not tracked by Git. To compile this project on Windows, you must add them manually:
-
-1. Clone the repository.
-2. Download the latest [yt-dlp.exe](https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp.exe) and place it inside `bundled_tools/windows/`.
-3. Download the [FFmpeg Essentials build](https://www.gyan.dev/ffmpeg/builds/ffmpeg-release-essentials.zip). Open the zip, go to the `bin/` folder, and extract `ffmpeg.exe` into `bundled_tools/windows/`.
-4. Open the project in Qt Creator, select your MinGW kit, and hit **Build**.
-
-### Building on Linux
-1. Clone the repository.
-2. Ensure you have the required Qt 6 development packages installed.
-3. Open the project in Qt Creator, select your GCC kit, and hit **Build**.
-*(Note: The Linux AppImage release is bundled with the necessary tools automatically during the deployment process).*
+**[ 🇬🇧 English ](#angry-downloader-en)** | **[ 🇷🇴 Română ](#angry-downloader-ro)**
 
 ---
 
-# 🇷🇴 Limba Română (Romanian)
+<a name="angry-downloader-en"></a>
+## 🇬🇧 Angry Downloader (EN)
 
-# Angry Downloader 🎥
+A fast, cross-platform graphical user interface (GUI) for `yt-dlp` and `FFmpeg`, built with C++ and Qt 6. Easily download high-quality videos and audio without touching the command line.
+
+### 🎯 Key Features
+* **Cross-Platform:** Works natively on Windows and Linux (Fedora, Ubuntu, etc.).
+* **Powered by yt-dlp:** Supports downloading from YouTube and hundreds of other websites.
+* **Automated Merging:** Uses FFmpeg under the hood to automatically stitch together high-quality video and audio streams.
+* **Fully Portable:** No installation required. Just download the AppImage (Linux) or extract the ZIP (Windows) and run.
+
+### 🛠️ Software Requirements & Dependencies
+To run the pre-built releases, you don't need anything. To compile from source, you will need:
+* **Framework:** Qt 6 (Tested with 6.10.2)
+* **Build System:** CMake
+* **Compiler:** MinGW (Windows) or GCC (Linux)
+* **Backend Tools:** `yt-dlp` and `FFmpeg`
+
+### 🔌 Project Structure & Tools (Paths)
+To keep the repository lightweight, the massive binary tools for Windows are ignored by Git (using a `.gitkeep` file). If you are building from source, place them here:
+
+| Tool | Windows Path | Linux Path |
+| :--- | :--- | :--- |
+| **yt-dlp** | `bundled_tools/windows/yt-dlp.exe` | Automatically bundled inside AppDir |
+| **FFmpeg** | `bundled_tools/windows/ffmpeg.exe` | Automatically bundled inside AppDir |
+
+*Note for Windows Devs: Download the [yt-dlp release](https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp.exe) and the [FFmpeg essentials build](https://www.gyan.dev/ffmpeg/builds/ffmpeg-release-essentials.zip) and drop the executables into the paths above before building in Qt Creator.*
+
+### ⚠️ Known Issues & Build Notes
+* **Linux AppImage Dependency Clashes:** Compiling the AppImage on bleeding-edge distros (like Fedora) with `linuxdeploy` can cause Segfaults due to bundled kernel-level libraries. 
+    * *Solution:* We manually purge `libcap`, `libsystemd`, `libpcre2`, etc., from the `AppDir`, manually drop in the Qt `wayland`/`xcb` platform plugins, and compress it using raw `appimagetool`.
+* **Missing Windows Folders:** Git does not track empty folders. 
+    * *Solution:* A `.gitkeep` file is used inside the `bundled_tools/windows` directory to force the folder structure to sync for collaborators.
+
+### 👨‍💻 Author
+**angryman05**
+---
+
+<a name="angry-downloader-ro"></a>
+## 🇷🇴 Angry Downloader (RO)
 
 O interfață grafică (GUI) rapidă și cross-platform pentru `yt-dlp` și `FFmpeg`, construită cu C++ și Qt 6. Descarcă ușor videoclipuri și fișiere audio la calitate maximă, fără a folosi linia de comandă.
 
-## ✨ Funcționalități
-* **Cross-Platform:** Funcționează perfect pe Windows și Linux.
+### 🎯 Funcționalități Cheie
+* **Cross-Platform:** Funcționează nativ pe Windows și Linux (Fedora, Ubuntu, etc.).
 * **Puterea yt-dlp:** Suportă descărcarea de pe YouTube și sute de alte site-uri.
 * **Îmbinare Automată:** Folosește FFmpeg în fundal pentru a îmbina automat fluxurile video și audio de înaltă calitate.
-* **Portabil:** Nu necesită instalare. Doar descarcă AppImage-ul (Linux) sau extrage arhiva ZIP (Windows) și pornește aplicația.
+* **Complet Portabil:** Nu necesită instalare. Doar descarcă AppImage-ul (Linux) sau extrage arhiva ZIP (Windows) și pornește aplicația.
 
-## 🚀 Descărcare și Instalare
-Accesează pagina de **[Releases](../../releases/latest)** pentru a descărca ultima versiune pentru sistemul tău de operare:
-* **Windows:** Descarcă fișierul `.zip`, extrage-l și rulează `angry_downloader.exe`.
-* **Linux (Fedora/Ubuntu/etc):** Descarcă fișierul `.AppImage`, oferă-i permisiuni de execuție (`chmod +x`) și rulează-l.
+### 🛠️ Cerințe Software & Dependințe
+Pentru a rula versiunile pre-compilate, nu ai nevoie de nimic. Pentru a compila din codul sursă, necesită:
+* **Framework:** Qt 6 (Testat cu 6.10.2)
+* **Sistem de Build:** CMake
+* **Compilator:** MinGW (Windows) sau GCC (Linux)
+* **Unelte Backend:** `yt-dlp` și `FFmpeg`
 
-## 🛠️ Compilare din Codul Sursă (Build)
+### 🔌 Structura Proiectului & Unelte (Paths)
+Pentru a păstra acest repository ușor, binarele masive pentru Windows sunt ignorate de Git (folosind un fișier `.gitkeep`). Dacă compilezi din sursă, plasează-le aici:
 
-### Cerințe
-* Qt 6 (Testat cu versiunea 6.10.2)
-* CMake
-* Compilator C++ (MinGW pentru Windows, GCC pentru Linux)
+| Unealtă | Cale Windows (Path) | Cale Linux (Path) |
+| :--- | :--- | :--- |
+| **yt-dlp** | `bundled_tools/windows/yt-dlp.exe` | Împachetat automat în AppDir |
+| **FFmpeg** | `bundled_tools/windows/ffmpeg.exe` | Împachetat automat în AppDir |
 
-### Compilare pe Windows
-Pentru a păstra acest repository ușor de descărcat, fișierele binare mari pentru Windows (yt-dlp și FFmpeg) nu sunt stocate în Git. Pentru a compila acest proiect pe Windows, trebuie să le adaugi manual:
+*Notă pentru dezvoltatorii Windows: Descarcă [yt-dlp](https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp.exe) și arhiva [FFmpeg essentials](https://www.gyan.dev/ffmpeg/builds/ffmpeg-release-essentials.zip) și copiază executabilele în folderele de mai sus înainte de a da Build în Qt Creator.*
 
-1. Clonează repository-ul.
-2. Descarcă ultimul [yt-dlp.exe](https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp.exe) și pune-l în folderul `bundled_tools/windows/`.
-3. Descarcă [FFmpeg Essentials build](https://www.gyan.dev/ffmpeg/builds/ffmpeg-release-essentials.zip). Deschide arhiva zip, intră în folderul `bin/` și extrage `ffmpeg.exe` în `bundled_tools/windows/`.
-4. Deschide proiectul în Qt Creator, selectează kit-ul MinGW și apasă **Build**.
+### ⚠️ Probleme Cunoscute & Notițe de Compilare
+* **Conflicte de Dependențe la Linux AppImage:** Compilarea AppImage-ului pe distribuții foarte noi (precum Fedora) cu `linuxdeploy` poate cauza Segfault-uri din cauza bibliotecilor de sistem împachetate greșit.
+    * *Soluție:* Ștergem manual `libcap`, `libsystemd`, `libpcre2` din folderul `AppDir`, adăugăm manual plugin-urile Qt pentru `wayland`/`xcb` și comprimăm totul folosind `appimagetool` brut.
+* **Foldere Lipsă pe Windows:** Git nu sincronizează foldere goale.
+    * *Soluție:* Un fișier `.gitkeep` este folosit în folderul `bundled_tools/windows` pentru a forța păstrarea structurii de directoare pentru colaboratori.
 
-### Compilare pe Linux
-1. Clonează repository-ul.
-2. Asigură-te că ai instalate pachetele de dezvoltare necesare pentru Qt 6.
-3. Deschide proiectul în Qt Creator, selectează kit-ul GCC și apasă **Build**.
-*(Notă: Versiunea AppImage pentru Linux include deja automat uneltele necesare în timpul procesului de deployment).*
+### 👨‍💻 Autor
+**angryman05**
