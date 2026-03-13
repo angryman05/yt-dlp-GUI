@@ -151,6 +151,8 @@ void MainWindow::on_btnConvertClicked()
     QString format = ui->boxFormats->currentText().toLower();
 
     ui->btnConvert->setEnabled(false);
+    ui->boxFormats->setEnabled(false);
+    ui->btnFileDest->setEnabled(false);
     ui->btnConvert->setText("Downloading...");
 
     QStringList arguments;
@@ -171,7 +173,12 @@ void MainWindow::on_btnConvertClicked()
     // Format selection logic
     if (format == "mp3" || format == "wav" || format == "m4a" || format == "flac" || format == "ogg") {
         arguments << "-x" << "--audio-format" << format;
-    } else {
+    }else if(format == "mp4")
+    {
+        arguments << "-f" << "bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best";
+        arguments << "--merge-output-format" << "mp4";
+    }
+    else {
         arguments << "--merge-output-format" << format;
     }
 
@@ -215,6 +222,8 @@ void MainWindow::on_btnConvertClicked()
 void MainWindow::on_processFinished(int exitCode, QProcess::ExitStatus exitStatus)
 {
     ui->btnConvert->setEnabled(true);
+    ui->boxFormats->setEnabled(true);
+    ui->btnFileDest->setEnabled(true);
     ui->btnConvert->setText("Download");
 
     if (exitStatus == QProcess::NormalExit && exitCode == 0) {
