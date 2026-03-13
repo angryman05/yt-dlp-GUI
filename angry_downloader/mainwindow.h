@@ -3,7 +3,7 @@
 
 #include <QMainWindow>
 #include <QProcess>
-#include <QPixmap> // <--- ADD THIS for image handling
+#include <QPixmap>
 
 QT_BEGIN_NAMESPACE
 
