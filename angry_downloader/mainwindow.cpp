@@ -13,6 +13,8 @@
 #include <QHBoxLayout>
 #include <QLabel>
 #include <QDateTime>
+#include <QtGlobal>
+#include <QString>
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
@@ -28,7 +30,8 @@ MainWindow::MainWindow(QWidget *parent)
     if (!dir.exists(m_appDataFolder)) {
         dir.mkpath(m_appDataFolder); // Create the folder if it doesn't exist!
     }
-    // ------------------------------------
+
+
 
     QSettings settings("MyCoolApps", "YtDlpGUI");
     m_saveFolder = settings.value("lastFolder", "").toString();
@@ -104,6 +107,28 @@ void MainWindow::on_btnFileDestClicked()
 
 }
 
+QString getFfmpegPath()
+{
+#ifdef Q_OS_WIN
+    return QCoreApplication::applicationDirPath() + "/tools/ffmpeg.exe";
+#elif defined(Q_OS_LINUX)
+    return QCoreApplication::applicationDirPath() + "/tools/ffmpeg";
+#else
+    return "ffmpeg";
+#endif
+}
+
+QString getYtDlpPath()
+{
+#ifdef Q_OS_WIN
+    return QCoreApplication::applicationDirPath() + "/tools/yt-dlp.exe";
+#elif defined(Q_OS_LINUX)
+    return QCoreApplication::applicationDirPath() + "/tools/yt-dlp";
+#else
+    return "yt-dlp";
+#endif
+}
+
 void MainWindow::on_btnConvertClicked()
 {
 
@@ -150,7 +175,7 @@ void MainWindow::on_btnConvertClicked()
 
     ui->progressBar->setValue(0);
 
-    arguments << "--ffmpeg-location" << "/usr/bin/ffmpeg";
+    arguments << "--ffmpeg-location" << getFfmpegPath();
 
     arguments << "--newline" << url;
 
@@ -165,23 +190,23 @@ void MainWindow::on_btnConvertClicked()
 
     QStringList thumbArgs;
 
-    //thumbnai logic
+    //thumbnail logic
     thumbArgs << "--write-thumbnail" << "--convert-thumbnails" << "jpg" << "--skip-download";
 
     thumbArgs << "-q" << "--no-warnings" << "--print" << "title" << "--force-overwrites" << "--no-simulate";
 
     thumbArgs << "-o" << QDir::tempPath() + "/yt_temp_thumb";
 
-    thumbArgs << "--ffmpeg-location" << "/usr/bin/ffmpeg";
+    thumbArgs << "--ffmpeg-location" << getFfmpegPath();
     thumbArgs << url;
 
     thumbProcess->setProcessEnvironment(env);
 
     QFile::remove(m_tempThumbPath);
 
-    thumbProcess->start("yt-dlp", thumbArgs);
+    thumbProcess->start(getYtDlpPath(), thumbArgs);
 
-    ytProcess->start("yt-dlp", arguments);
+    ytProcess->start(getYtDlpPath(), arguments);
 
 }
 

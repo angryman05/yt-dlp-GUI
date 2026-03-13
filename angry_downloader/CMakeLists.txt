@@ -69,3 +69,17 @@ install(TARGETS angry_downloader
 if(QT_VERSION_MAJOR EQUAL 6)
     qt_finalize_executable(angry_downloader)
 endif()
+
+if(WIN32)
+    set(TOOL_PLATFORM_DIR "${CMAKE_CURRENT_SOURCE_DIR}/bundled_tools/windows")
+elseif(UNIX AND NOT APPLE)
+    set(TOOL_PLATFORM_DIR "${CMAKE_CURRENT_SOURCE_DIR}/bundled_tools/linux")
+endif()
+
+
+add_custom_command(TARGET angry_downloader POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_directory
+    "${TOOL_PLATFORM_DIR}"
+    "$<TARGET_FILE_DIR:angry_downloader>/tools"
+    COMMENT "Copying yt-dlp and ffmpeg to the build directory..."
+)
