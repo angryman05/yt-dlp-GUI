@@ -22,6 +22,8 @@ MainWindow::MainWindow(QWidget *parent)
 {
     ui->setupUi(this);
 
+    ui->tabWidget->setCurrentIndex(0);
+
     // --- SETUP PERMANENT CACHE FOLDER ---
     // This finds the standard Linux/Windows user data folder and creates a folder just for our app
     m_appDataFolder = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation) + "/YtDlpGUI/Thumbnails";
